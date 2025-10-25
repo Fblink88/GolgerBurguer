@@ -44,7 +44,6 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
 
 
     // Determina si el botón "Siguiente" debe estar habilitado.
-    // Requiere que la fecha de nacimiento esté seleccionada y no haya errores.
     val isStep4Valid = uiState.birthDate.isNotBlank() && uiState.birthDateError == null
 
 
@@ -53,7 +52,6 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
             TopAppBar(
                 title = { Text("Detalles Adicionales") },
                 navigationIcon = {
-                    // Botón para volver al paso anterior (RegisterStep3Screen).
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -76,9 +74,8 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
                     .padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Indicador de progreso (Aproximadamente 4 de 5 pasos completados)
                 LinearProgressIndicator(
-                    progress = { 0.8f }, // Usando la sintaxis de lambda para evitar advertencia de deprecación
+                    progress = { 0.8f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),
@@ -118,7 +115,7 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
                     genderOptions.forEachIndexed { index, label ->
                         SegmentedButton(
                             shape = SegmentedButtonDefaults.baseShape,
-                            onClick = { viewModel.onGenderChange(label) }, // Actualiza el ViewModel
+                            onClick = { viewModel.onGenderChange(label) },
                             selected = uiState.gender == label
                         ) {
                             Text(label)
@@ -137,10 +134,9 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
                 Spacer(modifier = Modifier.height(8.dp))
 
 
-                // Campo de texto que se comporta como botón para abrir el selector de fecha.
                 OutlinedTextField(
                     value = uiState.birthDate,
-                    onValueChange = { /* Solo se cambia con el DatePicker */ },
+                    onValueChange = {},
                     label = { Text("Selecciona tu fecha") },
                     readOnly = true,
                     isError = uiState.birthDateError != null,
@@ -148,14 +144,13 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
                         Icon(
                             Icons.Default.CalendarMonth,
                             contentDescription = "Abrir Selector de Fecha",
-                            modifier = Modifier.clickable { showDatePicker = true } // Abre el diálogo al hacer clic en el icono.
+                            modifier = Modifier.clickable { showDatePicker = true }
                         )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { showDatePicker = true } // Abre el diálogo al hacer clic en el campo.
+                        .clickable { showDatePicker = true }
                 )
-                // Muestra el mensaje de error de fecha.
                 AnimatedVisibility(visible = uiState.birthDateError != null) {
                     Text(
                         text = uiState.birthDateError ?: "",
@@ -171,10 +166,8 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
                 Spacer(modifier = Modifier.height(32.dp))
 
 
-                // Botón para ir al siguiente paso del registro (Paso 5/Resumen).
                 Button(
                     onClick = {
-                        // Navega al Paso 5 si los datos son válidos.
                         if (isStep4Valid) {
                             navController.navigate(AppScreens.RegisterStep5Screen.route)
                         }
@@ -182,7 +175,7 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    enabled = isStep4Valid // Habilita el botón solo si los datos son válidos.
+                    enabled = isStep4Valid
                 ) {
                     Text(
                         "Siguiente",
@@ -197,28 +190,20 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
     }
 
 
-    // --- Diálogo de Selección de Fecha (DatePickerDialog) ---
     if (showDatePicker) {
-        // Calculamos la fecha máxima de selección (hace 18 años).
         val maxDate = LocalDate.now().minus(18, ChronoUnit.YEARS)
         val maxDateMillis = maxDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
 
         val datePickerState = rememberDatePickerState(
-            // La fecha máxima seleccionable es de hace 18 años (requisito de edad mínima).
             initialSelectedDateMillis = maxDateMillis,
-            // Rango de fechas: Desde el inicio de la era (hace 100 años) hasta la fecha máxima (hace 18 años).
             yearRange = (LocalDate.now().minus(100, ChronoUnit.YEARS).year..maxDate.year),
             initialDisplayMode = DisplayMode.Picker
-            // [ELIMINADO] dateValidator para evitar el error de parámetro no encontrado.
         )
 
-        // Validamos la selección manualmente para habilitar el botón Confirmar.
-        // La fecha es válida si no es nula Y no es posterior a la fecha máxima permitida (hace 18 años).
+
         val isDateSelectionValid = datePickerState.selectedDateMillis != null &&
                 datePickerState.selectedDateMillis!! <= maxDateMillis
-
-
 
 
         DatePickerDialog(
@@ -227,23 +212,21 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            // Convierte los milisegundos a LocalDate.
                             val selectedDate = Instant.ofEpochMilli(millis)
                                 .atZone(ZoneId.systemDefault())
                                 .toLocalDate()
 
 
-                            // Formatea la fecha al formato deseado (ej: 01/01/2000)
-                            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault())
+                            // [CORRECCIÓN FINAL] Formatea la fecha al formato AAAA-MM-DD.
+                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
                             val formattedDate = selectedDate.format(formatter)
 
 
-                            // Llama al ViewModel para actualizar la fecha y validar la edad.
+                            // Llama al ViewModel con la fecha en el formato correcto.
                             viewModel.onBirthDateChange(formattedDate)
                         }
-                        showDatePicker = false // Cierra el diálogo al confirmar.
+                        showDatePicker = false
                     },
-                    // [ACTUALIZADO] El botón se habilita solo si la selección cumple con la validación de edad.
                     enabled = isDateSelectionValid
                 ) {
                     Text("Aceptar")
@@ -259,8 +242,3 @@ fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewMod
         }
     }
 }
-
-
-
-
-

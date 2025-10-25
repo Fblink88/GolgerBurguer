@@ -1,5 +1,4 @@
-package com.example.golgerburguer.model // Asegúrate que el paquete coincida con tu proyecto
-
+package com.example.golgerburguer.model
 
 import androidx.annotation.DrawableRes
 import androidx.room.ColumnInfo

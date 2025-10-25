@@ -1,4 +1,4 @@
-package com.example.golgerburguer.data // Asegúrate que el paquete coincida
+package com.example.golgerburguer.model // Asegúrate que el paquete coincida
 
 
 import androidx.room.Dao

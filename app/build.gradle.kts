@@ -2,12 +2,13 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-kapt")
 }
 
 android {
     namespace = "com.example.golgerburguer"
     compileSdk {
-        version = release(33)
+        version = release(36)
     }
 
     defaultConfig {
@@ -42,16 +43,16 @@ android {
 }
 
 dependencies {
-    // --- PEGA EL SIGUIENTE BLOQUE AQUÍ ---
-
+    // --- Room ---
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
 
     // ViewModel para MVVM en Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
 
-
     // Navigation para la navegación entre pantallas en Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
-
 
     // DataStore para persistencia de datos local (guardar sesión)
     implementation("androidx.datastore:datastore-preferences:1.1.7")
@@ -69,8 +70,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.room.common.jvm)
-    implementation(libs.androidx.room.ktx)
+
+    // --- Test Dependencies ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

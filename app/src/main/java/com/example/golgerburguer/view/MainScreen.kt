@@ -25,7 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.golgerburguer.data.SessionManager
+import com.example.golgerburguer.model.SessionManager
 import com.example.golgerburguer.navigation.AppScreens
 import com.example.golgerburguer.navigation.BottomNavItem
 import com.example.golgerburguer.viewmodel.CatalogViewModel

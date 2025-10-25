@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.example.golgerburguer.data.SessionManager
+import com.example.golgerburguer.model.SessionManager
 import com.example.golgerburguer.navigation.AppScreens
 import com.example.golgerburguer.viewmodel.LoginViewModel
 import kotlinx.coroutines.launch
@@ -159,7 +159,7 @@ fun LoginScreen(
                         // Por ahora, simulamos éxito si los campos son válidos
                         if (isLoginValid) {
                             scope.launch {
-                                sessionManager.saveLoginState(true) // Guarda estado de logueado
+                                sessionManager.setLoggedIn() // Guarda estado de logueado
                             }
                             // Navega al flujo principal y limpia el historial de login/welcome
                             navController.navigate("main_flow") {
@@ -202,8 +202,3 @@ fun LoginScreen(
         }
     }
 }
-
-
-
-
-

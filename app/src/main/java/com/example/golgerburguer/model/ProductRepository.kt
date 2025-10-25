@@ -1,8 +1,8 @@
-package com.example.golgerburguer.model// Asegúrate que el paquete coincida
+package com.example.golgerburguer.model
 
-
-import com.example.golgerburguer.data.ProductDao
 import kotlinx.coroutines.flow.Flow
+
+
 
 
 /**

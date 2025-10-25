@@ -127,7 +127,7 @@ fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewMod
                     value = uiState.phoneNumber,
                     onValueChange = { viewModel.onPhoneNumberChange(it) }, // Llama al ViewModel.
                     label = { Text("Número de Teléfono") },
-                    placeholder = { Text("Ej: 56912345678") },
+                    placeholder = { Text("Ej: 912345678") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), // Teclado numérico de teléfono.
                     singleLine = true,

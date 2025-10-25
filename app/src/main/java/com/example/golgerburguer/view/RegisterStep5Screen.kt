@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -16,22 +17,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.example.golgerburguer.model.SessionManager
 import com.example.golgerburguer.navigation.AppScreens
 import com.example.golgerburguer.viewmodel.RegisterViewModel
+import kotlinx.coroutines.launch
 
 
 /**
  * Pantalla Composable para el quinto y último paso del registro (Resumen y Confirmación).
  * @param navController Controlador de navegación.
  * @param viewModel ViewModel que gestiona el estado del registro.
+ * @param sessionManager Gestor para guardar el estado de la sesión.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterStep5Screen(navController: NavController, viewModel: RegisterViewModel) {
+fun RegisterStep5Screen(
+    navController: NavController,
+    viewModel: RegisterViewModel,
+    sessionManager: SessionManager // Added parameter
+) {
 
 
     // Observa el estado del RegisterViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope() // Added scope for coroutine
 
 
     Scaffold(
@@ -134,12 +143,15 @@ fun RegisterStep5Screen(navController: NavController, viewModel: RegisterViewMod
                     onClick = {
                         // Llama a la acción final del ViewModel (simulada)
                         viewModel.onRegisterClicked()
-                        // Navega a la pantalla de inicio o éxito.
-                        // En un caso real, esto solo ocurriría si el registro fue exitoso.
-                        navController.navigate(AppScreens.HomeScreen.route) {
-                            // Limpia la pila de navegación para que el usuario no pueda volver al registro
-                            popUpTo(AppScreens.RegisterStep1Screen.route) {
-                                inclusive = true
+                        
+                        // Guardamos el estado de la sesión y navegamos
+                        scope.launch {
+                            sessionManager.setLoggedIn()
+                            // Navega al flujo principal y limpia todo el historial de registro y bienvenida
+                            navController.navigate("main_flow") {
+                                popUpTo(AppScreens.WelcomeScreen.route) {
+                                    inclusive = true
+                                }
                             }
                         }
                     },
@@ -205,6 +217,3 @@ private fun SummaryItem(label: String, value: String) {
         )
     }
 }
-
-
-

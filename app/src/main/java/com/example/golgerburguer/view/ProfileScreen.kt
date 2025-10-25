@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.golgerburguer.data.SessionManager
+import com.example.golgerburguer.model.SessionManager
 import com.example.golgerburguer.navigation.AppScreens
 import kotlinx.coroutines.launch
 
@@ -25,14 +25,14 @@ import kotlinx.coroutines.launch
 /**
  * Pantalla Composable que muestra el perfil del usuario y permite cerrar sesión.
  * @param navController El NavController principal (de AppNavigation) para poder volver a Welcome.
- * @param sessionManager El gestor de sesión para poder llamar a clearSession().
+ * @param sessionManager El gestor de sesión para poder llamar a setLoggedOut().
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController, sessionManager: SessionManager) {
 
 
-    // Scope para lanzar la corutina de clearSession
+    // Scope para lanzar la corutina de setLoggedOut
     val scope = rememberCoroutineScope()
 
 
@@ -87,7 +87,7 @@ fun ProfileScreen(navController: NavController, sessionManager: SessionManager) 
                     onClick = {
                         // Inicia la corutina para limpiar la sesión en DataStore
                         scope.launch {
-                            sessionManager.clearSession()
+                            sessionManager.setLoggedOut()
                         }
                         // Navega a la pantalla de bienvenida
                         navController.navigate(AppScreens.WelcomeScreen.route) {
@@ -125,8 +125,3 @@ fun ProfileScreen(navController: NavController, sessionManager: SessionManager) 
         }
     }
 }
-
-
-
-
-

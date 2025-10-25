@@ -18,7 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.golgerburguer.data.SessionManager
+import com.example.golgerburguer.model.SessionManager
 import com.example.golgerburguer.view.*
 import com.example.golgerburguer.viewmodel.CatalogViewModel
 import com.example.golgerburguer.viewmodel.LoginViewModel
@@ -136,7 +136,7 @@ fun AppNavigation(
             AppScreens.RegisterStep5Screen.route,
             enterTransition = { slideIn }, exitTransition = { slideOut },
             popEnterTransition = { popIn }, popExitTransition = { popOut }
-        ) { RegisterStep5Screen(navController, sessionManager) }
+        ) { RegisterStep5Screen(navController, registerViewModel, sessionManager) }
 
 
         // --- Ruta para el Flujo Principal (App Logueada) ---
@@ -156,8 +156,3 @@ fun AppNavigation(
         }
     }
 }
-
-
-
-
-
