@@ -32,15 +32,14 @@ data class CatalogUiState(
 
 /**
  * ViewModel principal para gestionar los datos del catálogo, favoritos y carrito.
+ * [ACTUALIZADO] Se ha corregido el uso del constructor de Locale.
  */
-class CatalogViewModel(private val repository: ProductRepository) : ViewModel() {
+class CatalogViewModel(val repository: ProductRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CatalogUiState())
     val uiState: StateFlow<CatalogUiState> = _uiState.asStateFlow()
 
     init {
-        // Al iniciar el ViewModel, solo nos suscribimos a los datos.
-        // La carga inicial de datos ahora es manejada por el callback de la base de datos.
         observeProducts()
         observeFavorites()
     }
@@ -48,24 +47,16 @@ class CatalogViewModel(private val repository: ProductRepository) : ViewModel() 
     private fun observeProducts() {
         viewModelScope.launch {
             repository.allProducts
-                .catch { exception ->
-                    println("Error observing products: $exception")
-                }
-                .collect { productList ->
-                    _uiState.update { it.copy(products = productList) }
-                }
+                .catch { exception -> println("Error observing products: $exception") }
+                .collect { productList -> _uiState.update { it.copy(products = productList) } }
         }
     }
 
     private fun observeFavorites() {
         viewModelScope.launch {
             repository.favoriteProducts
-                .catch { exception ->
-                    println("Error observing favorites: $exception")
-                }
-                .collect { favoriteList ->
-                    _uiState.update { it.copy(favorites = favoriteList) }
-                }
+                .catch { exception -> println("Error observing favorites: $exception") }
+                .collect { favoriteList -> _uiState.update { it.copy(favorites = favoriteList) } }
         }
     }
 
@@ -117,13 +108,20 @@ class CatalogViewModel(private val repository: ProductRepository) : ViewModel() 
             currentState.copy(cartItems = cart)
         }
     }
+
+    fun clearCart() {
+        _uiState.update { currentState ->
+            currentState.copy(cartItems = emptyList())
+        }
+    }
 }
 
 /**
  * Función de extensión para formatear un Double como moneda Chilena (CLP).
  */
 fun Double.toCurrencyFormat(): String {
-    val format = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
+    // [CORREGIDO] Se utiliza el método moderno para obtener el Locale.
+    val format = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CL"))
     format.maximumFractionDigits = 0
     return format.format(this).replace("CLP", "").trim()
 }

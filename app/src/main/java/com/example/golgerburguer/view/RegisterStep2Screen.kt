@@ -1,11 +1,10 @@
 package com.example.golgerburguer.view
 
-
-
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -21,160 +20,87 @@ import androidx.navigation.NavController
 import com.example.golgerburguer.navigation.AppScreens
 import com.example.golgerburguer.viewmodel.RegisterViewModel
 
-
 /**
- * Pantalla Composable para el segundo paso del registro (Información Personal).
- * @param navController Controlador de navegación.
- * @param viewModel ViewModel que gestiona el estado del registro.
+ * [ACTUALIZADO] Añadido el campo de Región que faltaba.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewModel) {
 
-
-    // Observa el estado del RegisterViewModel de forma segura para el ciclo de vida.
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-
-    // Determina si el botón "Siguiente" debe estar habilitado.
-    // Requiere que ambos campos tengan texto y no haya errores de validación activos.
-    val isStep2Valid = uiState.fullName.isNotBlank() &&
-            uiState.phoneNumber.isNotBlank() &&
-            uiState.fullNameError == null &&
-            uiState.phoneNumberError == null
-
+    // La validación ahora incluye el campo de región.
+    val isStep2Valid = uiState.fullName.isNotBlank() && uiState.phoneNumber.isNotBlank() &&
+            uiState.street.isNotBlank() && uiState.number.isNotBlank() &&
+            uiState.city.isNotBlank() && uiState.commune.isNotBlank() && uiState.region.isNotBlank() &&
+            uiState.fullNameError == null && uiState.phoneNumberError == null &&
+            uiState.streetError == null && uiState.numberError == null &&
+            uiState.cityError == null && uiState.communeError == null && uiState.regionError == null
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Información Personal") },
-                navigationIcon = {
-                    // Botón para volver al paso anterior (RegisterStep1Screen).
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver al Paso 1"
-                        )
-                    }
-                }
+                title = { Text("Datos Personales y Dirección") },
+                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") } }
             )
         }
     ) { paddingValues ->
         Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
             color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = 32.dp)
+                    .verticalScroll(rememberScrollState()), // Permite hacer scroll
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Indicador de progreso (Opcional, pero útil en flujos multipaso)
-                LinearProgressIndicator(
-                    progress = 0.4f, // Aproximadamente 2 de 5 pasos completados
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    color = MaterialTheme.colorScheme.primary // Color principal del tema
-                )
+                LinearProgressIndicator(progress = { 0.4f }, modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
 
+                Text("Ahora, un poco sobre ti", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(8.dp))
+                Text("Necesitamos tus datos personales y de despacho.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(32.dp))
 
-                Text(
-                    text = "Cuéntanos más sobre ti",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Necesitamos tu nombre y teléfono de contacto.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(48.dp))
-
-
-                // Campo de texto para el Nombre Completo.
-                OutlinedTextField(
-                    value = uiState.fullName,
-                    onValueChange = { viewModel.onFullNameChange(it) }, // Llama al ViewModel.
-                    label = { Text("Nombre Completo") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), // Teclado normal.
-                    singleLine = true,
-                    isError = uiState.fullNameError != null
-                )
-                // Muestra el mensaje de error de nombre.
+                // --- Campos de Datos Personales ---
+                OutlinedTextField(value = uiState.fullName, onValueChange = { viewModel.onFullNameChange(it) }, label = { Text("Nombre Completo") }, isError = uiState.fullNameError != null, singleLine = true, modifier = Modifier.fillMaxWidth())
                 AnimatedVisibility(visible = uiState.fullNameError != null) {
-                    Text(
-                        text = uiState.fullNameError ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 4.dp)
-                    )
+                    Text(uiState.fullNameError ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp))
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-
-
-                // Campo de texto para el Número de Teléfono.
-                OutlinedTextField(
-                    value = uiState.phoneNumber,
-                    onValueChange = { viewModel.onPhoneNumberChange(it) }, // Llama al ViewModel.
-                    label = { Text("Número de Teléfono") },
-                    placeholder = { Text("Ej: 912345678") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), // Teclado numérico de teléfono.
-                    singleLine = true,
-                    isError = uiState.phoneNumberError != null
-                )
-                // Muestra el mensaje de error de teléfono.
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(value = uiState.phoneNumber, onValueChange = { viewModel.onPhoneNumberChange(it) }, label = { Text("Teléfono (9 dígitos)") }, isError = uiState.phoneNumberError != null, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                 AnimatedVisibility(visible = uiState.phoneNumberError != null) {
-                    Text(
-                        text = uiState.phoneNumberError ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 4.dp)
-                    )
+                    Text(uiState.phoneNumberError ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp))
                 }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
+                // --- Campos de Dirección ---
+                Text("Dirección de Despacho", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(32.dp))
+                OutlinedTextField(value = uiState.street, onValueChange = { viewModel.onStreetChange(it) }, label = { Text("Calle") }, isError = uiState.streetError != null, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(value = uiState.number, onValueChange = { viewModel.onNumberChange(it) }, label = { Text("Número") }, isError = uiState.numberError != null, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(value = uiState.commune, onValueChange = { viewModel.onCommuneChange(it) }, label = { Text("Comuna") }, isError = uiState.communeError != null, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(value = uiState.city, onValueChange = { viewModel.onCityChange(it) }, label = { Text("Ciudad") }, isError = uiState.cityError != null, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(value = uiState.region, onValueChange = { viewModel.onRegionChange(it) }, label = { Text("Región") }, isError = uiState.regionError != null, singleLine = true, modifier = Modifier.fillMaxWidth())
 
+                Spacer(Modifier.height(32.dp))
 
-                // Botón para ir al siguiente paso del registro (Paso 3).
                 Button(
-                    onClick = {
-                        // Navega al Paso 3 si los datos son válidos.
-                        if (isStep2Valid) {
-                            navController.navigate(AppScreens.RegisterStep3Screen.route)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    enabled = isStep2Valid // Habilita el botón solo si los datos son válidos.
+                    onClick = { if (isStep2Valid) { navController.navigate(AppScreens.RegisterStep3Screen.route) } },
+                    enabled = isStep2Valid,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
-                    Text(
-                        "Siguiente",
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                    Text("Siguiente")
                 }
-
-
-                Spacer(modifier = Modifier.height(24.dp))
-                // Espacio inferior para evitar que el contenido toque el borde.
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
 }
-
-
-

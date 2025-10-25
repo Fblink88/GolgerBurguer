@@ -1,22 +1,17 @@
 package com.example.golgerburguer.viewmodel
 
-
-
-
-import android.util.Patterns // Para la validación de email
+import android.util.Patterns
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.golgerburguer.model.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-
+import kotlinx.coroutines.launch
 
 /**
- * Data class que representa el estado de la interfaz de usuario para la pantalla de Login.
- * @property email El texto actual en el campo de correo electrónico.
- * @property password El texto actual en el campo de contraseña.
- * @property emailError Mensaje de error para el campo email (null si no hay error).
- * @property passwordError Mensaje de error para el campo contraseña (null si no hay error).
+ * Data class para el estado de la UI de la pantalla de Login.
  */
 data class LoginUiState(
     val email: String = "",
@@ -25,61 +20,59 @@ data class LoginUiState(
     val passwordError: String? = null
 )
 
-
 /**
- * ViewModel para gestionar la lógica y el estado de la pantalla de Login.
+ * ViewModel para la pantalla de Login.
+ * [ACTUALIZADO] Ahora recibe el repositorio para validar las credenciales del usuario.
  */
-class LoginViewModel : ViewModel() {
+class LoginViewModel(private val repository: ProductRepository) : ViewModel() {
 
-
-    // _uiState: Flujo mutable y privado que contiene el estado actual.
     private val _uiState = MutableStateFlow(LoginUiState())
-    // uiState: Flujo público e inmutable que la pantalla observa.
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-
-    /**
-     * Se llama cuando el texto en el campo de email cambia.
-     * Actualiza el estado 'email' y realiza la validación de formato.
-     * @param email El nuevo texto introducido por el usuario.
-     */
     fun onEmailChange(email: String) {
-        _uiState.update { currentState ->
-            // Validación: Comprueba si el email no está vacío y si tiene un formato válido.
-            val emailError = if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                "El formato del correo no es válido"
-            } else {
-                null // No hay error
-            }
-            currentState.copy(email = email, emailError = emailError)
+        val error = if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            "Formato de correo inválido"
+        } else {
+            null
         }
+        _uiState.update { it.copy(email = email, emailError = error) }
     }
 
+    fun onPasswordChange(password: String) {
+        val error = if (password.length < 6) "La contraseña debe tener al menos 6 caracteres" else null
+        _uiState.update { it.copy(password = password, passwordError = error) }
+    }
 
     /**
-     * Se llama cuando el texto en el campo de contraseña cambia.
-     * Actualiza el estado 'password' y realiza la validación de longitud.
-     * @param password El nuevo texto introducido por el usuario.
+     * [NUEVO] Inicia el proceso de login.
+     * Busca al usuario por email y verifica la contraseña.
+     * @param onSuccess Callback que se ejecuta si el login es exitoso.
+     * @param onError Callback que se ejecuta si hay un error, pasando un mensaje.
      */
-    fun onPasswordChange(password: String) {
-        _uiState.update { currentState ->
-            // Validación: Comprueba si la contraseña no está vacía y tiene al menos 6 caracteres.
-            val passwordError = if (password.isNotBlank() && password.length < 6) {
-                "La contraseña debe tener al menos 6 caracteres"
-            } else {
-                null // No hay error
+    fun login(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        if (isFormValid()) {
+            viewModelScope.launch {
+                val state = _uiState.value
+                val user = repository.findUserByEmail(state.email)
+
+                if (user == null) {
+                    onError("Usuario no encontrado.")
+                } else if (user.password != state.password) {
+                    // En una app real, aquí se compararía el hash de la contraseña
+                    onError("Contraseña incorrecta.")
+                } else {
+                    // ¡Éxito!
+                    onSuccess()
+                }
             }
-            currentState.copy(password = password, passwordError = passwordError)
+        } else {
+            onError("Por favor, corrige los errores en el formulario.")
         }
     }
 
-
-    // Nota: La lógica de autenticación real (llamar a un repositorio/API) iría aquí.
-    // Para este proyecto, la simulación de éxito se maneja directamente en la pantalla
-    // (LoginScreen.kt) verificando que los errores sean null y llamando a SessionManager.
+    private fun isFormValid(): Boolean {
+        val state = _uiState.value
+        return state.email.isNotBlank() && state.password.isNotBlank() &&
+                state.emailError == null && state.passwordError == null
+    }
 }
-
-
-
-
-

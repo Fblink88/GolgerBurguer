@@ -3,52 +3,49 @@ package com.example.golgerburguer.model
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-// Crea una extensión de Context para acceder a DataStore de forma centralizada.
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "session")
+// El DataStore ahora se llamará "session_prefs" para reflejar su propósito.
+private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(name = "session_prefs")
 
 /**
- * Gestiona el estado de la sesión del usuario (logueado/no logueado) usando Jetpack DataStore.
- *
- * @param context El contexto de la aplicación, necesario para inicializar DataStore.
+ * Gestiona la sesión del usuario.
+ * [ACTUALIZADO] Ahora guarda el email del usuario logueado en lugar de un booleano.
  */
 class SessionManager(private val context: Context) {
 
-    // Define la clave para almacenar el estado de inicio de sesión.
-    private val isLoggedInKey = booleanPreferencesKey("is_logged_in")
+    // La clave para guardar el email del usuario.
+    private val loggedInUserEmailKey = stringPreferencesKey("logged_in_user_email")
 
     /**
-     * Un Flow que emite `true` si el usuario ha iniciado sesión y `false` en caso contrario.
-     * Observa cambios en tiempo real en el estado de la sesión.
+     * Un Flow que emite el email del usuario logueado.
+     * Si no hay nadie logueado, emite null.
      */
-    val isLoggedInFlow: Flow<Boolean> = context.dataStore.data
+    val loggedInUserEmailFlow: Flow<String?> = context.sessionDataStore.data
         .map { preferences ->
-            // Lee el valor booleano. Si no existe, devuelve 'false' por defecto.
-            preferences[isLoggedInKey] ?: false
+            preferences[loggedInUserEmailKey]
         }
 
     /**
-     * Guarda el estado de la sesión como "logueado".
-     * Esta es una función suspendida porque DataStore opera de forma asíncrona.
+     * Guarda el email del usuario para marcarlo como logueado.
+     * @param email El email del usuario que ha iniciado sesión.
      */
-    suspend fun setLoggedIn() {
-        context.dataStore.edit { preferences ->
-            preferences[isLoggedInKey] = true
+    suspend fun saveUserSession(email: String) {
+        context.sessionDataStore.edit { preferences ->
+            preferences[loggedInUserEmailKey] = email
         }
     }
 
     /**
-     * Borra el estado de la sesión, marcando al usuario como "no logueado".
-     * También es una función suspendida.
+     * Limpia la sesión del usuario, eliminando su email guardado.
      */
-    suspend fun setLoggedOut() {
-        context.dataStore.edit { preferences ->
-            preferences[isLoggedInKey] = false
+    suspend fun clearUserSession() {
+        context.sessionDataStore.edit { preferences ->
+            preferences.remove(loggedInUserEmailKey)
         }
     }
 }

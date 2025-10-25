@@ -1,50 +1,33 @@
-package com.example.golgerburguer.viewmodel // Asegúrate que el paquete coincida
-
-
-
+package com.example.golgerburguer.viewmodel
 
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.golgerburguer.model.ProductRepository
+import com.example.golgerburguer.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-
-
-
+import kotlinx.coroutines.launch
 
 /**
  * Data class que representa el estado completo de la UI para el flujo de registro.
- *
- * CAMBIOS REALIZADOS: Se reemplazaron firstName/lastName por fullName, se agregó phoneNumber,
- * y se añadieron los campos 'gender' (género) y 'birthdate' (fecha de nacimiento).
  */
 data class RegisterUiState(
-    // Paso 1: Credenciales
     val email: String = "",
     val password: String = "",
     val emailError: String? = null,
     val passwordError: String? = null,
-
-
-    // Paso 2: Información Personal
-    val fullName: String = "", // Campo esperado por la pantalla Step2
-    val phoneNumber: String = "", // Campo esperado por la pantalla Step2
-    val gender: String = "", // <- NUEVO: Género del usuario (ej: "Masculino", "Femenino", "Otro")
-    val birthDate: String = "", // <- NUEVO: Fecha de nacimiento (ej: "1990-12-31")
-
-
-    val fullNameError: String? = null, // Error esperado por la pantalla Step2
-    val phoneNumberError: String? = null, // Error esperado por la pantalla Step2
-    val genderError: String? = null, // <- NUEVO: Error para el género
-    val birthDateError: String? = null, // <- NUEVO: Error para la fecha de nacimiento
-
-
-    // Paso 3: Foto de Perfil
+    val fullName: String = "",
+    val phoneNumber: String = "",
+    val gender: String = "",
+    val birthDate: String = "",
+    val fullNameError: String? = null,
+    val phoneNumberError: String? = null,
+    val genderError: String? = null,
+    val birthDateError: String? = null,
     val profileImageUri: String? = null,
-
-
-    // Paso 4: Dirección
     val number: String = "",
     val street: String = "",
     val commune: String = "",
@@ -57,280 +40,109 @@ data class RegisterUiState(
     val regionError: String? = null
 )
 
-
-
-
 /**
- * ViewModel encargado de gestionar la lógica de negocio y el estado
- * de la interfaz de usuario durante el proceso de registro.
+ * ViewModel para el flujo de registro.
+ * [ACTUALIZADO] Ahora recibe el repositorio para poder guardar el usuario.
  */
-class RegisterViewModel : ViewModel() {
-
-
-
+class RegisterViewModel(private val repository: ProductRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
-
-
-
-    // --- LÓGICA DE VALIDACIÓN ---
-
-
-
+    // --- LÓGICA DE VALIDACIÓN (sin cambios) ---
 
     private fun validateFullName(name: String): String? {
-        return if (name.isBlank()) {
-            "El nombre completo no puede estar vacío"
-        } else if (name.length < 5) {
-            "El nombre es demasiado corto"
-        } else {
-            null
-        }
+        return if (name.isBlank()) "El nombre completo no puede estar vacío" else if (name.length < 5) "El nombre es demasiado corto" else null
     }
-
-
-
 
     private fun validatePhoneNumber(phone: String): String? {
-        // Validación básica para Chile: 9 dígitos (ej: 912345678)
-        return if (phone.isBlank()) {
-            "El número de teléfono es obligatorio"
-        } else if (phone.length != 9 || !phone.all { it.isDigit() }) {
-            "Debe ser un número de 9 dígitos (ej. 912345678)"
-        } else {
-            null
-        }
+        return if (phone.isBlank()) "El número de teléfono es obligatorio" else if (phone.length != 9 || !phone.all { it.isDigit() }) "Debe ser un número de 9 dígitos (ej. 912345678)" else null
     }
 
-
-    /**
-     * Valida que el campo de género no esté vacío.
-     */
     private fun validateGender(gender: String): String? {
-        return if (gender.isBlank()) {
-            "El género es obligatorio"
-        } else {
-            null
-        }
+        return if (gender.isBlank()) "El género es obligatorio" else null
     }
 
-
-    /**
-     * Valida que la fecha de nacimiento no esté vacía y tenga un formato básico YYYY-MM-DD.
-     */
     private fun validateBirthDate(date: String): String? {
-        // Regex simple para formato AAAA-MM-DD (no valida la validez de la fecha en sí, solo el formato)
         val dateRegex = "^\\d{4}-\\d{2}-\\d{2}$".toRegex()
-
-
-        return if (date.isBlank()) {
-            "La fecha de nacimiento es obligatoria"
-        } else if (!date.matches(dateRegex)) {
-            "El formato debe ser AAAA-MM-DD"
-        } else {
-            // Nota: Se podría añadir lógica para verificar si es una fecha pasada,
-            // o si el usuario es mayor de edad, etc.
-            null
-        }
+        return if (date.isBlank()) "La fecha de nacimiento es obligatoria" else if (!date.matches(dateRegex)) "El formato debe ser AAAA-MM-DD" else null
     }
 
-
-
-
-    // Validaciones de Dirección (Puedes expandirlas si lo necesitas)
     private fun validateNumber(number: String): String? {
-        return if (number.isBlank()) {
-            "El número de dirección es obligatorio"
-        } else if (!number.all { it.isDigit() }) {
-            "Solo se permiten números"
-        } else {
-            null
-        }
+        return if (number.isBlank()) "El número de dirección es obligatorio" else if (!number.all { it.isDigit() }) "Solo se permiten números" else null
     }
 
+    // --- Actualizadores de estado (sin cambios) ---
 
-
-
-    // --- Funciones llamadas por la UI para actualizar el estado ---
-
-
-
-
-    // Paso 1: Credenciales
     fun onEmailChange(email: String) {
-        _uiState.update { currentState ->
-            val error = if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                "El formato del correo no es válido"
-            } else if (email.isBlank()) {
-                "El correo no puede estar vacío"
-            } else {
-                null
-            }
-            currentState.copy(email = email, emailError = error)
-        }
+        val error = if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) "El formato del correo no es válido" else if (email.isBlank()) "El correo no puede estar vacío" else null
+        _uiState.update { it.copy(email = email, emailError = error) }
     }
-
-
-
 
     fun onPasswordChange(password: String) {
-        _uiState.update { currentState ->
-            val error = if (password.isNotBlank() && password.length < 6) {
-                "La contraseña debe tener al menos 6 caracteres"
-            } else if (password.isBlank()) {
-                "La contraseña no puede estar vacía"
-            } else {
-                null
+        val error = if (password.isNotBlank() && password.length < 6) "La contraseña debe tener al menos 6 caracteres" else if (password.isBlank()) "La contraseña no puede estar vacía" else null
+        _uiState.update { it.copy(password = password, passwordError = error) }
+    }
+
+    fun onFullNameChange(fullName: String) = _uiState.update { it.copy(fullName = fullName, fullNameError = validateFullName(fullName)) }
+    fun onPhoneNumberChange(phoneNumber: String) = _uiState.update { it.copy(phoneNumber = phoneNumber, phoneNumberError = validatePhoneNumber(phoneNumber)) }
+    fun onGenderChange(gender: String) = _uiState.update { it.copy(gender = gender, genderError = validateGender(gender)) }
+    fun onBirthDateChange(birthdate: String) = _uiState.update { it.copy(birthDate = birthdate, birthDateError = validateBirthDate(birthdate)) }
+    fun onProfileImageChange(uri: String?) = _uiState.update { it.copy(profileImageUri = uri) }
+    fun onStreetChange(street: String) = _uiState.update { it.copy(street = street, streetError = if (street.isBlank()) "La calle no puede estar vacía" else null) }
+    fun onNumberChange(number: String) = _uiState.update { it.copy(number = number, numberError = validateNumber(number)) }
+    fun onCommuneChange(commune: String) = _uiState.update { it.copy(commune = commune, communeError = if (commune.isBlank()) "La comuna no puede estar vacía" else null) }
+    fun onCityChange(city: String) = _uiState.update { it.copy(city = city, cityError = if (city.isBlank()) "La ciudad no puede estar vacía" else null) }
+    fun onRegionChange(region: String) = _uiState.update { it.copy(region = region, regionError = if (region.isBlank()) "La región no puede estar vacía" else null) }
+
+
+    /**
+     * [ACTUALIZADO] Función que se llama al finalizar el registro.
+     * Crea un objeto User y lo guarda en la base de datos.
+     */
+    fun onRegisterClicked(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        if (isFormValid()) {
+            viewModelScope.launch {
+                try {
+                    val state = _uiState.value
+                    val newUser = User(
+                        email = state.email,
+                        password = state.password, // En una app real, esto debería ser un hash
+                        fullName = state.fullName,
+                        phoneNumber = state.phoneNumber,
+                        gender = state.gender,
+                        birthDate = state.birthDate,
+                        street = state.street,
+                        number = state.number,
+                        city = state.city,
+                        region = state.region,
+                        commune = state.commune
+                    )
+                    repository.registerUser(newUser)
+                    onSuccess() // Llama al callback de éxito
+                } catch (e: Exception) {
+                    // Esto puede pasar si el email ya está registrado (violación de índice único)
+                    onError(e.message ?: "Ocurrió un error desconocido")
+                }
             }
-            currentState.copy(password = password, passwordError = error)
-        }
-    }
-
-
-
-
-    // Paso 2: Información Personal
-    fun onFullNameChange(fullName: String) {
-        _uiState.update { currentState ->
-            val error = validateFullName(fullName)
-            currentState.copy(fullName = fullName, fullNameError = error)
-        }
-    }
-
-
-
-
-    fun onPhoneNumberChange(phoneNumber: String) {
-        _uiState.update { currentState ->
-            val error = validatePhoneNumber(phoneNumber)
-            currentState.copy(phoneNumber = phoneNumber, phoneNumberError = error)
-        }
-    }
-
-
-    /**
-     * Actualiza el género y valida el campo.
-     */
-    fun onGenderChange(gender: String) {
-        _uiState.update { currentState ->
-            val error = validateGender(gender)
-            currentState.copy(gender = gender, genderError = error)
-        }
-    }
-
-
-    /**
-     * Actualiza la fecha de nacimiento y valida el campo.
-     */
-    fun onBirthDateChange(birthdate: String) {
-        _uiState.update { currentState ->
-            val error = validateBirthDate(birthdate)
-            currentState.copy(birthDate = birthdate, birthDateError = error)
-        }
-    }
-
-
-
-
-    // Paso 3: Foto
-    fun onProfileImageChange(uri: String?) {
-        _uiState.update { currentState ->
-            currentState.copy(profileImageUri = uri)
-        }
-    }
-
-
-
-
-    // Paso 4: Dirección
-
-
-    /**
-     * Actualiza la calle y valida el campo.
-     */
-    fun onStreetChange(street: String) {
-        _uiState.update { currentState ->
-            val error = if (street.isBlank()) "La calle no puede estar vacía" else null
-            currentState.copy(street = street, streetError = error)
-        }
-    }
-
-
-    /**
-     * Actualiza el número de dirección y valida el campo.
-     */
-    fun onNumberChange(number: String) {
-        _uiState.update { currentState ->
-            val error = validateNumber(number)
-            currentState.copy(number = number, numberError = error)
-        }
-    }
-
-
-
-
-    fun onCommuneChange(commune: String) {
-        _uiState.update { currentState ->
-            val error = if (commune.isBlank()) "La comuna no puede estar vacía" else null
-            currentState.copy(commune = commune, communeError = error)
-        }
-    }
-
-
-
-
-    fun onCityChange(city: String) {
-        _uiState.update { currentState ->
-            val error = if (city.isBlank()) "La ciudad no puede estar vacía" else null
-            currentState.copy(city = city, cityError = error)
-        }
-    }
-
-
-
-
-    fun onRegionChange(region: String) {
-        _uiState.update { currentState ->
-            val error = if (region.isBlank()) "La región no puede estar vacía" else null
-            currentState.copy(region = region, regionError = error)
-        }
-    }
-
-
-
-
-    /**
-     * Función (a implementar) que se llamaría al finalizar el registro.
-     */
-    fun onRegisterClicked() {
-        val currentState = _uiState.value
-        // Esta validación debe ser revisada después de implementar todos los pasos
-        if (
-            currentState.emailError == null && currentState.passwordError == null &&
-            currentState.fullNameError == null && currentState.phoneNumberError == null &&
-            currentState.genderError == null && currentState.birthDateError == null && // <- NUEVOS CHEQUEOS
-            currentState.streetError == null && currentState.numberError == null &&
-            currentState.communeError == null && currentState.cityError == null &&
-            currentState.regionError == null &&
-            // Asegurarse que los campos obligatorios no estén vacíos
-            currentState.email.isNotBlank() && currentState.password.isNotBlank() &&
-            currentState.fullName.isNotBlank() && currentState.phoneNumber.isNotBlank() &&
-            currentState.gender.isNotBlank() && currentState.birthDate.isNotBlank() && // <- NUEVOS CHEQUEOS
-            currentState.street.isNotBlank() && currentState.number.isNotBlank() &&
-            currentState.commune.isNotBlank() && currentState.city.isNotBlank() &&
-            currentState.region.isNotBlank()
-        ) {
-            // TODO: Lógica para guardar el usuario registrado
-            println("Registro Válido: $currentState")
         } else {
-            println("Error en el registro: Faltan datos o hay errores.")
+            onError("El formulario contiene errores o datos incompletos.")
         }
+    }
+
+    private fun isFormValid(): Boolean {
+        val state = _uiState.value
+        return state.emailError == null && state.passwordError == null &&
+                state.fullNameError == null && state.phoneNumberError == null &&
+                state.genderError == null && state.birthDateError == null &&
+                state.streetError == null && state.numberError == null &&
+                state.communeError == null && state.cityError == null &&
+                state.regionError == null &&
+                state.email.isNotBlank() && state.password.isNotBlank() &&
+                state.fullName.isNotBlank() && state.phoneNumber.isNotBlank() &&
+                state.gender.isNotBlank() && state.birthDate.isNotBlank() &&
+                state.street.isNotBlank() && state.number.isNotBlank() &&
+                state.commune.isNotBlank() && state.city.isNotBlank() &&
+                state.region.isNotBlank()
     }
 }
-
-
-
-
-
