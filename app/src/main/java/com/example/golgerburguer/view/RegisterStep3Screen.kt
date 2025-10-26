@@ -25,6 +25,20 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter // <-- AÑADIDO
 import com.example.golgerburguer.navigation.AppScreens
 import com.example.golgerburguer.viewmodel.RegisterViewModel
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Environment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
+import androidx.compose.runtime.*
 
 /**
  * [ACTUALIZADO] Añadida la importación para Coil.
@@ -40,6 +54,36 @@ fun RegisterStep3Screen(navController: NavController, viewModel: RegisterViewMod
     ) { uri ->
         uri?.let { viewModel.onProfileImageChange(it.toString()) }
     }
+
+    // ----------- NUEVO BLOQUE PARA CÁMARA -----------
+    val context = LocalContext.current
+    var cameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    fun createImageUri(context: Context): Uri {
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        val file = File.createTempFile("JPEG_${timestamp}_", ".jpg", storageDir)
+        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            viewModel.onProfileImageChange(cameraUri.toString())
+        }
+    }
+
+    val requestCameraPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val uri = createImageUri(context)
+            cameraUri = uri
+            takePictureLauncher.launch(uri)
+        }
+    }
+// -----------------------------------------------
 
     Scaffold(
         topBar = {
@@ -92,6 +136,26 @@ fun RegisterStep3Screen(navController: NavController, viewModel: RegisterViewMod
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
+                            PackageManager.PERMISSION_GRANTED -> {
+                                val uri = createImageUri(context)
+                                cameraUri = uri
+                                takePictureLauncher.launch(uri)
+                            }
+                            else -> {
+                                requestCameraPermission.launch(Manifest.permission.CAMERA)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Text("Tomar foto con cámara")
                 }
 
                 Spacer(Modifier.height(32.dp))

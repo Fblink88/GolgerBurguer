@@ -23,12 +23,13 @@ data class EditProfileUiState(
     val city: String = "",
     val commune: String = "",
     val region: String = "",
+    val profileImageUri: String? = null,
     val isLoading: Boolean = true,
     val user: User? = null
 )
 
 /**
- * [ACTUALIZADO] Corregido el posible bucle de carga infinito.
+ * [CORRECCIÓN FINAL] Se arregla la lógica de carga de datos.
  */
 class EditProfileViewModel(
     private val repository: ProductRepository,
@@ -43,34 +44,34 @@ class EditProfileViewModel(
     }
 
     /**
-     * [CORREGIDO] Carga los datos del usuario de forma segura.
-     * Ahora asegura que el estado de carga siempre se desactive, incluso si hay errores.
+     * [CORREGIDO] La actualización del estado ahora se hace en un solo paso para evitar que los datos se pierdan.
      */
     private fun loadCurrentUser() {
         viewModelScope.launch {
-            try {
-                val userEmail = sessionManager.loggedInUserEmailFlow.first()
-                if (userEmail != null) {
-                    val user = repository.findUserByEmail(userEmail)
-                    if (user != null) {
-                        _uiState.update {
-                            it.copy(
-                                user = user,
-                                fullName = user.fullName,
-                                phoneNumber = user.phoneNumber,
-                                street = user.street,
-                                number = user.number,
-                                city = user.city,
-                                commune = user.commune,
-                                region = user.region
-                            )
-                        }
+            val userEmail = sessionManager.loggedInUserEmailFlow.first()
+            if (userEmail != null) {
+                val user = repository.findUserByEmail(userEmail)
+                if (user != null) {
+                    // Si se encuentra al usuario, se actualizan TODOS los campos Y se desactiva la carga.
+                    _uiState.update {
+                        it.copy(
+                            user = user,
+                            fullName = user.fullName,
+                            phoneNumber = user.phoneNumber,
+                            street = user.street,
+                            number = user.number,
+                            city = user.city,
+                            commune = user.commune,
+                            region = user.region,
+                            profileImageUri = user.profileImageUri,
+                            isLoading = false // <--- Se actualiza aquí, en el mismo paso.
+                        )
                     }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) } // Si no hay usuario, solo quita la carga.
                 }
-            } finally {
-                // Este bloque se ejecuta siempre, haya o no un error.
-                // Asegura que la pantalla de carga desaparezca en todos los casos.
-                _uiState.update { it.copy(isLoading = false) }
+            } else {
+                _uiState.update { it.copy(isLoading = false) } // Si no hay sesión, solo quita la carga.
             }
         }
     }
@@ -83,10 +84,8 @@ class EditProfileViewModel(
     fun onCityChange(city: String) = _uiState.update { it.copy(city = city) }
     fun onCommuneChange(commune: String) = _uiState.update { it.copy(commune = commune) }
     fun onRegionChange(region: String) = _uiState.update { it.copy(region = region) }
+    fun onProfileImageChange(uri: String?) = _uiState.update { it.copy(profileImageUri = uri) }
 
-    /**
-     * Guarda los cambios del perfil en la base de datos.
-     */
     fun saveChanges(onSuccess: () -> Unit, onError: (String) -> Unit) {
         val currentState = _uiState.value
         val originalUser = currentState.user
@@ -99,7 +98,8 @@ class EditProfileViewModel(
                 number = currentState.number,
                 city = currentState.city,
                 commune = currentState.commune,
-                region = currentState.region
+                region = currentState.region,
+                profileImageUri = currentState.profileImageUri
             )
 
             viewModelScope.launch {

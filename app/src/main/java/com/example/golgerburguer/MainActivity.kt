@@ -28,20 +28,19 @@ class MainActivity : ComponentActivity() {
     private val sessionManager by lazy { SessionManager(this) }
     private val themeManager by lazy { ThemeManager(this) }
 
+    // [ACTUALIZADO] Se le pasa el SessionManager a la factory del CatalogViewModel.
     private val catalogViewModel: CatalogViewModel by viewModels {
         val database = GolgerBurguerDatabase.getDatabase(this)
         val repository = ProductRepository(database.productDao(), database.userDao())
-        CatalogViewModelFactory(repository)
+        CatalogViewModelFactory(repository, sessionManager) // <-- AÑADIDO sessionManager
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // [ACTUALIZADO] Lee el estado del modo oscuro desde el ThemeManager.
             val isDarkMode by themeManager.isDarkMode.collectAsState(initial = false)
 
-            // Pasa el estado al parámetro `darkTheme` de nuestro tema personalizado.
             GolgerBurguerTheme(darkTheme = isDarkMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
