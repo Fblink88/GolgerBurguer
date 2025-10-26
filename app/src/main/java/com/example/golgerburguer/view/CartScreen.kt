@@ -27,31 +27,28 @@ import com.example.golgerburguer.viewmodel.CatalogViewModel
 import com.example.golgerburguer.viewmodel.toCurrencyFormat
 
 /**
- * [ACTUALIZADO] Se corrige la referencia a la imagen del producto, usando `imagenReferencia` directamente.
+ * [ACTUALIZADO] Se elimina la TopAppBar individual.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreen(catalogViewModel: CatalogViewModel) {
     val uiState by catalogViewModel.uiState.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Mi Carrito") }) }
-    ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            if (uiState.cartItems.isEmpty()) {
-                EmptyCartView()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(uiState.cartItems, key = { it.product.id }) {
-                        cartItem -> CartItemRow(item = cartItem, viewModel = catalogViewModel)
-                    }
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (uiState.cartItems.isEmpty()) {
+            EmptyCartView()
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(uiState.cartItems, key = { it.product.id }) {
+                    cartItem -> CartItemRow(item = cartItem, viewModel = catalogViewModel)
                 }
-                CartSummary(subtotal = uiState.cartSubtotal)
             }
+            CartSummary(subtotal = uiState.cartSubtotal)
         }
     }
 }
@@ -78,7 +75,6 @@ fun CartItemRow(item: CartItem, viewModel: CatalogViewModel) {
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            // [CORREGIDO] Se usa la propiedad `imagenReferencia` del producto directamente.
             Image(
                 painter = painterResource(id = item.product.imagenReferencia),
                 contentDescription = item.product.nombre,
