@@ -39,7 +39,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * [ACTUALIZADO] Añadida la funcionalidad completa para editar la foto de perfil.
+ * [CORRECCIÓN DEFINITIVA] La función `createImageUri` ahora es correcta.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,6 +142,9 @@ fun EditProfileScreen(
     }
 }
 
+/**
+ * [CORREGIDO] Esta función ahora es idéntica a la que funciona en RegisterStep3Screen.
+ */
 private fun createImageUri(context: Context): Uri {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
     val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)

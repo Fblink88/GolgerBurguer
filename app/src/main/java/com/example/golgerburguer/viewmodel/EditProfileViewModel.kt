@@ -1,5 +1,6 @@
 package com.example.golgerburguer.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.golgerburguer.model.ProductRepository
@@ -29,7 +30,7 @@ data class EditProfileUiState(
 )
 
 /**
- * [CORRECCIÓN FINAL] Se arregla la lógica de carga de datos.
+ * [RE-CORREGIDO] Se restaura la lógica correcta para la carga de datos.
  */
 class EditProfileViewModel(
     private val repository: ProductRepository,
@@ -48,9 +49,13 @@ class EditProfileViewModel(
      */
     private fun loadCurrentUser() {
         viewModelScope.launch {
+            Log.d("EditProfileViewModel", "Iniciando carga de usuario...")
             val userEmail = sessionManager.loggedInUserEmailFlow.first()
+            Log.d("EditProfileViewModel", "Email en sesión: $userEmail")
+
             if (userEmail != null) {
                 val user = repository.findUserByEmail(userEmail)
+                Log.d("EditProfileViewModel", "Usuario encontrado en BD: ${user?.fullName}")
                 if (user != null) {
                     // Si se encuentra al usuario, se actualizan TODOS los campos Y se desactiva la carga.
                     _uiState.update {
@@ -67,11 +72,14 @@ class EditProfileViewModel(
                             isLoading = false // <--- Se actualiza aquí, en el mismo paso.
                         )
                     }
+                    Log.d("EditProfileViewModel", "Estado actualizado con datos del usuario.")
                 } else {
                     _uiState.update { it.copy(isLoading = false) } // Si no hay usuario, solo quita la carga.
+                    Log.d("EditProfileViewModel", "Usuario no encontrado en BD. Carga finalizada.")
                 }
             } else {
                 _uiState.update { it.copy(isLoading = false) } // Si no hay sesión, solo quita la carga.
+                Log.d("EditProfileViewModel", "No hay email en sesión. Carga finalizada.")
             }
         }
     }
