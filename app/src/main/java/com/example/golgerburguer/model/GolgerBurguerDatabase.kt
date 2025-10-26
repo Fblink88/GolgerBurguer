@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * [ACTUALIZADO] Corregido el uso obsoleto de fallbackToDestructiveMigration.
+ * [ACTUALIZADO] Se incrementa la versión de la base de datos a 3 por el cambio en la entidad User.
  */
 @Database(entities = [Producto::class, User::class], version = 3, exportSchema = false)
 abstract class GolgerBurguerDatabase : RoomDatabase() {
@@ -29,7 +29,6 @@ abstract class GolgerBurguerDatabase : RoomDatabase() {
                     GolgerBurguerDatabase::class.java,
                     "golgerburguer_database"
                 )
-                    // [CORREGIDO] Se especifica explícitamente que se deben borrar todas las tablas.
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
