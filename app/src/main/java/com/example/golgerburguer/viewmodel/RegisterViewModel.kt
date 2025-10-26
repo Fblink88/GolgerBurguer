@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Estado de la UI para el flujo de registro.
+ * [ACTUALIZADO] Añadida función para controlar el estado de carga del GPS.
  */
 data class RegisterUiState(
     val email: String = "",
@@ -37,25 +37,27 @@ data class RegisterUiState(
     val numberError: String? = null,
     val communeError: String? = null,
     val cityError: String? = null,
-    val regionError: String? = null
+    val regionError: String? = null,
+    val isFetchingLocation: Boolean = false
 )
 
-/**
- * [ACTUALIZADO] Ahora guarda la URI de la imagen de perfil en la base de datos.
- */
 class RegisterViewModel(private val repository: ProductRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
-    // --- Lógica de Validación (sin cambios) ---
+    // [NUEVO] Función para que la UI pueda notificar el cambio de estado de la carga.
+    fun onFetchingLocationChange(isFetching: Boolean) {
+        _uiState.update { it.copy(isFetchingLocation = isFetching) }
+    }
+
+    // ... (El resto del ViewModel no cambia)
     private fun validateFullName(name: String): String? = if (name.isBlank()) "El nombre no puede estar vacío" else if (name.length < 5) "El nombre es demasiado corto" else null
     private fun validatePhoneNumber(phone: String): String? = if (phone.isBlank()) "El teléfono es obligatorio" else if (phone.length != 9 || !phone.all { it.isDigit() }) "Debe ser un número de 9 dígitos" else null
     private fun validateGender(gender: String): String? = if (gender.isBlank()) "El género es obligatorio" else null
     private fun validateBirthDate(date: String): String? = if (!"^\\d{4}-\\d{2}-\\d{2}$".toRegex().matches(date)) "El formato debe ser AAAA-MM-DD" else null
     private fun validateNumber(number: String): String? = if (number.isBlank()) "El número es obligatorio" else if (!number.all { it.isDigit() }) "Solo números" else null
 
-    // --- Actualizadores de estado (sin cambios) ---
     fun onEmailChange(email: String) = _uiState.update { it.copy(email = email, emailError = if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) "Correo inválido" else null) }
     fun onPasswordChange(password: String) = _uiState.update { it.copy(password = password, passwordError = if (password.length < 6) "Mínimo 6 caracteres" else null) }
     fun onFullNameChange(name: String) = _uiState.update { it.copy(fullName = name, fullNameError = validateFullName(name)) }
@@ -68,7 +70,6 @@ class RegisterViewModel(private val repository: ProductRepository) : ViewModel()
     fun onCommuneChange(commune: String) = _uiState.update { it.copy(commune = commune, communeError = if (commune.isBlank()) "La comuna es obligatoria" else null) }
     fun onCityChange(city: String) = _uiState.update { it.copy(city = city, cityError = if (city.isBlank()) "La ciudad es obligatoria" else null) }
     fun onRegionChange(region: String) = _uiState.update { it.copy(region = region, regionError = if (region.isBlank()) "La región es obligatoria" else null) }
-
 
     fun onRegisterClicked(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (isFormValid()) {
@@ -87,7 +88,6 @@ class RegisterViewModel(private val repository: ProductRepository) : ViewModel()
                         city = state.city,
                         region = state.region,
                         commune = state.commune,
-                        // [NUEVO] Se incluye la URI de la imagen de perfil.
                         profileImageUri = state.profileImageUri
                     )
                     repository.registerUser(newUser)
