@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
@@ -26,7 +27,7 @@ import com.example.goldenburgers.viewmodel.CatalogViewModel
 import com.example.goldenburgers.viewmodel.toCurrencyFormat
 
 /**
- * [CORREGIDO] Se elimina la función duplicada de EditProfileScreen.
+ * Pantalla principal que muestra el catálogo de productos.
  */
 @Composable
 fun HomeScreen(catalogViewModel: CatalogViewModel) {
@@ -48,7 +49,9 @@ fun HomeScreen(catalogViewModel: CatalogViewModel) {
 fun ProductCard(product: Producto, viewModel: CatalogViewModel) {
     val context = LocalContext.current
     val imageResId = remember(product.imagenReferencia) {
-        context.resources.getIdentifier(product.imagenReferencia.toString(), "drawable", context.packageName)
+        // Esta forma de obtener el ID es más segura si el nombre no coincide exactamente.
+        // Pero como usamos @DrawableRes, podemos usar el ID directamente.
+        product.imagenReferencia
     }
 
     Card(
@@ -76,7 +79,7 @@ fun ProductCard(product: Producto, viewModel: CatalogViewModel) {
                 }
             }
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(product.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(product.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
                 Text(product.descripcion, style = MaterialTheme.typography.bodySmall, maxLines = 2)
                 Spacer(Modifier.height(8.dp))
                 Row(
@@ -85,13 +88,12 @@ fun ProductCard(product: Producto, viewModel: CatalogViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(product.precio.toCurrencyFormat(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    // [ACTUALIZADO] Se reemplaza el texto "Add" por un icono.
                     Button(onClick = { viewModel.addToCart(product) }) {
-                        Text("Add")
+                        Icon(Icons.Default.Add, contentDescription = "Añadir al carrito")
                     }
                 }
             }
         }
     }
 }
-
-
