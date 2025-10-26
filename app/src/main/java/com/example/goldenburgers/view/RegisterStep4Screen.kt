@@ -1,13 +1,11 @@
 package com.example.goldenburgers.view
 
-
-
-import androidx.compose.animation.AnimatedVisibility
+import android.icu.text.SimpleDateFormat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,226 +16,120 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.goldenburgers.navigation.AppScreens
 import com.example.goldenburgers.viewmodel.RegisterViewModel
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-
 /**
- * Pantalla Composable para el cuarto paso del registro (Género y Fecha de Nacimiento).
- * @param navController Controlador de navegación.
- * @param viewModel ViewModel que gestiona el estado del registro.
+ * Esta es la cuarta pantalla del flujo de registro.
+ * Aquí recojo datos demográficos opcionales: género y fecha de nacimiento.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterStep4Screen(navController: NavController, viewModel: RegisterViewModel) {
 
-
-    // Observa el estado del RegisterViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-
-    // Estado local para controlar la visibilidad del diálogo de selección de fecha.
+    // --- Estados para controlar los menús desplegables ---
     var showDatePicker by remember { mutableStateOf(false) }
-
-
-    // Determina si el botón "Siguiente" debe estar habilitado.
-    val isStep4Valid = uiState.birthDate.isNotBlank() && uiState.birthDateError == null
-
+    var isGenderMenuExpanded by remember { mutableStateOf(false) }
+    val genderOptions = listOf("Masculino", "Femenino", "Otro", "Prefiero no decirlo")
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Detalles Adicionales") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver al Paso 3"
-                        )
-                    }
-                }
-            )
-        }
+        topBar = { TopAppBar(title = { Text("Detalles Opcionales") }, navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") } }) }
     ) { paddingValues ->
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            color = MaterialTheme.colorScheme.background
+        Column(
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            LinearProgressIndicator(progress = { 0.8f }, modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
+
+            Text("Un poco más sobre ti", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(8.dp))
+            Text("Estos datos nos ayudan a personalizar tu experiencia. (Opcional)", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(48.dp))
+
+            // --- Selector de Género ---
+            // He usado un `ExposedDropdownMenuBox` para crear un menú desplegable que sigue el estilo de Material 3.
+            ExposedDropdownMenuBox(
+                expanded = isGenderMenuExpanded,
+                onExpandedChange = { isGenderMenuExpanded = !isGenderMenuExpanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                LinearProgressIndicator(
-                    progress = { 0.8f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    color = MaterialTheme.colorScheme.primary
+                OutlinedTextField(
+                    value = uiState.gender,
+                    onValueChange = {}, // No permito que el usuario escriba directamente.
+                    readOnly = true,
+                    label = { Text("Género") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGenderMenuExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-
-
-                Text(
-                    text = "Casi terminamos",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Solo necesitamos saber tu género y fecha de nacimiento.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(48.dp))
-
-
-                // --- Selector de Género (Segmented Button) ---
-                Text(
-                    text = "Género",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-
-                val genderOptions = listOf("Hombre", "Mujer", "Otro")
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    genderOptions.forEachIndexed { index, label ->
-                        SegmentedButton(
-                            shape = SegmentedButtonDefaults.baseShape,
-                            onClick = { viewModel.onGenderChange(label) },
-                            selected = uiState.gender == label
-                        ) {
-                            Text(label)
-                        }
+                ExposedDropdownMenu(expanded = isGenderMenuExpanded, onDismissRequest = { isGenderMenuExpanded = false }) {
+                    genderOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                viewModel.onGenderChange(option)
+                                isGenderMenuExpanded = false
+                            }
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(32.dp))
+            }
 
+            Spacer(Modifier.height(16.dp))
 
-                // --- Selector de Fecha de Nacimiento ---
-                Text(
-                    text = "Fecha de Nacimiento",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            // --- Selector de Fecha de Nacimiento ---
+            OutlinedTextField(
+                value = uiState.birthDate,
+                onValueChange = {}, // El campo es de solo lectura.
+                readOnly = true,
+                label = { Text("Fecha de Nacimiento") },
+                // El icono del calendario es el que activa el DatePicker.
+                trailingIcon = { Icon(Icons.Default.DateRange, "Abrir calendario", modifier = Modifier.clickable { showDatePicker = true }) },
+                modifier = Modifier.fillMaxWidth()
+            )
 
+            Spacer(Modifier.height(32.dp))
 
-                OutlinedTextField(
-                    value = uiState.birthDate,
-                    onValueChange = {},
-                    label = { Text("Selecciona tu fecha") },
-                    readOnly = true,
-                    isError = uiState.birthDateError != null,
-                    trailingIcon = {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = "Abrir Selector de Fecha",
-                            modifier = Modifier.clickable { showDatePicker = true }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showDatePicker = true }
-                )
-                AnimatedVisibility(visible = uiState.birthDateError != null) {
-                    Text(
-                        text = uiState.birthDateError ?: "",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 4.dp)
-                    )
-                }
-
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-
-                Button(
-                    onClick = {
-                        if (isStep4Valid) {
-                            navController.navigate(AppScreens.RegisterStep5Screen.route)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    enabled = isStep4Valid
-                ) {
-                    Text(
-                        "Siguiente",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-
-
-                Spacer(modifier = Modifier.height(24.dp))
+            // --- Botones de Navegación ---
+            Button(onClick = { navController.navigate(AppScreens.RegisterStep5Screen.route) }, modifier = Modifier.fillMaxWidth().height(50.dp)) {
+                Text("Siguiente")
+            }
+            Spacer(Modifier.height(16.dp))
+            TextButton(onClick = { navController.navigate(AppScreens.RegisterStep5Screen.route) }) {
+                Text("Omitir")
             }
         }
     }
 
-
+    // --- Diálogo del DatePicker ---
+    // El DatePicker solo se muestra si `showDatePicker` es true.
     if (showDatePicker) {
+        // Calcula la fecha máxima de selección (hace 18 años). Así me aseguro de que el usuario sea mayor de edad.
         val maxDate = LocalDate.now().minus(18, ChronoUnit.YEARS)
         val maxDateMillis = maxDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = maxDateMillis,
+            // El rango de años seleccionable termina en el año de maxDate (ej: 2007).
             yearRange = (LocalDate.now().minus(100, ChronoUnit.YEARS).year..maxDate.year),
-            initialDisplayMode = DisplayMode.Picker
         )
-
-
-        val isDateSelectionValid = datePickerState.selectedDateMillis != null &&
-                datePickerState.selectedDateMillis!! <= maxDateMillis
-
-
+        
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val selectedDate = Instant.ofEpochMilli(millis)
-                                .atZone(ZoneId.systemDefault())
-                                .toLocalDate()
-
-
-                            // [CORRECCIÓN FINAL] Formatea la fecha al formato AAAA-MM-DD.
-                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.getDefault())
-                            val formattedDate = selectedDate.format(formatter)
-
-
-                            // Llama al ViewModel con la fecha en el formato correcto.
-                            viewModel.onBirthDateChange(formattedDate)
-                        }
-                        showDatePicker = false
-                    },
-                    enabled = isDateSelectionValid
-                ) {
-                    Text("Aceptar")
-                }
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        // Formateo la fecha seleccionada al formato AAAA-MM-DD y la guardo en el ViewModel.
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        viewModel.onBirthDateChange(sdf.format(it))
+                    }
+                    showDatePicker = false
+                }) { Text("Aceptar") }
             },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancelar")
-                }
-            }
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") } }
         ) {
             DatePicker(state = datePickerState)
         }

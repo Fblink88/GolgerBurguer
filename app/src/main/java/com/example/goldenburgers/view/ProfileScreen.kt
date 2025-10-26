@@ -20,7 +20,9 @@ import com.example.goldenburgers.viewmodel.CatalogViewModel
 import kotlinx.coroutines.launch
 
 /**
- * [ACTUALIZADO] Eliminada la flecha de "Volver" de la TopAppBar.
+ * Esta es la pantalla de Perfil del usuario.
+ * Desde aquí, el usuario puede acceder a la edición de sus datos, cambiar
+ * las preferencias de la app y cerrar su sesión.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,14 +32,17 @@ fun ProfileScreen(
     themeManager: ThemeManager,
     catalogViewModel: CatalogViewModel
 ) {
+    // Uso `rememberCoroutineScope` para poder lanzar corutinas desde los callbacks de los botones.
     val scope = rememberCoroutineScope()
+    // Observo el estado del modo oscuro desde el ThemeManager. La UI reaccionará a sus cambios.
     val isDarkMode by themeManager.isDarkMode.collectAsStateWithLifecycle(initialValue = false)
 
     Scaffold(
         topBar = {
+            // He decidido no ponerle un icono de navegación a esta TopAppBar para que se sienta
+            // como una pantalla principal, consistente con las otras pestañas del BottomNav.
             TopAppBar(
                 title = { Text("Mi Perfil") }
-                // [ELIMINADO] Se quita el navigationIcon para no mostrar la flecha.
             )
         }
     ) { paddingValues ->
@@ -46,6 +51,7 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Uso una `Card` para agrupar las opciones de forma visualmente atractiva.
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -54,6 +60,7 @@ fun ProfileScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Datos Personales", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(16.dp))
+                        // Botón para navegar a la pantalla de edición de perfil.
                         OutlinedButton(
                             onClick = { navController.navigate(AppScreens.EditProfileScreen.route) },
                             modifier = Modifier.fillMaxWidth()
@@ -73,9 +80,13 @@ fun ProfileScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Modo Oscuro", style = MaterialTheme.typography.bodyLarge)
+                            // El Switch controla la preferencia del tema. Su estado `checked` está
+                            // conectado al `isDarkMode` del ThemeManager.
                             Switch(
                                 checked = isDarkMode,
                                 onCheckedChange = { newSetting ->
+                                    // Cuando el usuario pulsa el switch, lanzo una corutina para
+                                    // llamar a la función que guarda la nueva preferencia en DataStore.
                                     scope.launch {
                                         themeManager.setDarkMode(newSetting)
                                     }
@@ -85,13 +96,19 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.weight(1f)) // Este Spacer empuja el botón de Cerrar Sesión hacia abajo.
 
+                // Botón de Cerrar Sesión. Lo he hecho de color rojo para darle mas importancia.
                 Button(
                     onClick = {
+                        // Al cerrar sesión, realizo dos acciones importantes:
+                        // 1. Limpio el carrito de compras para que esté vacío la próxima vez que inicie sesión.
                         catalogViewModel.clearCart()
+                        // 2. Lanzo una corutina para limpiar los datos de la sesión del SessionManager.
                         scope.launch {
                             sessionManager.clearUserSession()
+                            // Finalmente, navego a la pantalla de bienvenida y limpio todo el historial
+                            // de navegación anterior (`popUpTo`) para que el usuario no pueda volver atrás.
                             navController.navigate(AppScreens.WelcomeScreen.route) {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                 launchSingleTop = true
@@ -109,4 +126,3 @@ fun ProfileScreen(
         }
     }
 }
-

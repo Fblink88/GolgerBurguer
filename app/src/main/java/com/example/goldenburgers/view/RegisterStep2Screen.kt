@@ -35,7 +35,9 @@ import com.google.android.gms.location.Priority
 import java.util.Locale
 
 /**
- * [ACTUALIZADO] La lógica de carga del GPS está completamente conectada.
+ * Esta es la segunda pantalla del flujo de registro.
+ * Aquí recojo tanto los datos personales (nombre, teléfono) como la dirección del usuario.
+ * También he implementado una funcionalidad de autocompletado con GPS para facilitar el proceso.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,51 +45,63 @@ fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewMod
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    // `fusedLocationClient` es el cliente principal de los servicios de ubicación de Google.
+    // Lo usaré para obtener la ubicación actual del dispositivo.
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
+    // Este es el launcher que maneja la petición de permisos de ubicación.
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
         onResult = { permissions ->
+            // El resultado me llega como un mapa de permisos y si fueron concedidos (true/false).
             if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
                 permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)) {
 
+                // Doble chequeo de seguridad para asegurarme de que tengo el permiso antes de proceder.
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     return@rememberLauncherForActivityResult
                 }
                 
-                viewModel.onFetchingLocationChange(true) // <-- INICIA la carga
+                // Le digo al ViewModel que empiece a mostrar la señal de carga.
+                viewModel.onFetchingLocationChange(true)
 
+                // Pido la ubicación actual con alta precisión. Esta es una tarea asíncrona.
                 fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                     .addOnSuccessListener { location ->
+                        // Si la ubicación se obtiene con éxito, este listener se ejecuta.
                         if (location != null) {
                             try {
+                                // El Geocoder es el servicio que traduce coordenadas (lat, lon) a una dirección física.
                                 val geocoder = Geocoder(context, Locale.getDefault())
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    // A partir de Android 13, se debe usar la versión asíncrona de getFromLocation.
                                     geocoder.getFromLocation(location.latitude, location.longitude, 1) {
                                         addresses -> 
+                                        // Una vez tengo la dirección, llamo a mi función auxiliar para rellenar los campos.
                                         addresses.firstOrNull()?.let { updateAddressFields(viewModel, it) }
-                                        viewModel.onFetchingLocationChange(false) // <-- TERMINA la carga
+                                        viewModel.onFetchingLocationChange(false) // Termino la carga.
                                     }
                                 } else {
+                                    // Para versiones antiguas de Android, uso la versión síncrona (deprecated).
                                     @Suppress("DEPRECATION")
                                     val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
                                     addresses?.firstOrNull()?.let { updateAddressFields(viewModel, it) }
-                                    viewModel.onFetchingLocationChange(false) // <-- TERMINA la carga
+                                    viewModel.onFetchingLocationChange(false) // Termino la carga.
                                 }
                                 Toast.makeText(context, "Dirección encontrada", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 Toast.makeText(context, "No se pudo encontrar una dirección.", Toast.LENGTH_SHORT).show()
-                                viewModel.onFetchingLocationChange(false) // <-- TERMINA la carga (con error)
+                                viewModel.onFetchingLocationChange(false)
                             }
                         } else {
                             Toast.makeText(context, "No se pudo obtener la ubicación.", Toast.LENGTH_SHORT).show()
-                            viewModel.onFetchingLocationChange(false) // <-- TERMINA la carga (con error)
+                            viewModel.onFetchingLocationChange(false)
                         }
                     }
                     .addOnFailureListener { 
                         Toast.makeText(context, "Error al obtener la ubicación.", Toast.LENGTH_SHORT).show() 
-                        viewModel.onFetchingLocationChange(false) // <-- TERMINA la carga (con error)
+                        viewModel.onFetchingLocationChange(false)
                     }
             } else {
                 Toast.makeText(context, "Permiso de ubicación denegado.", Toast.LENGTH_SHORT).show()
@@ -132,11 +146,13 @@ fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewMod
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Autocompletar con GPS", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     IconButton(onClick = {
+                        // Cuando se pulsa el botón, lanzo la petición de permisos.
                         locationPermissionLauncher.launch(arrayOf(
                             Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION
                         ))
                     }) {
+                        // Aquí muestro el indicador de carga si la app está buscando la ubicación.
                         if (uiState.isFetchingLocation) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         } else {
@@ -171,6 +187,11 @@ fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewMod
     }
 }
 
+/**
+ * He creado esta función auxiliar para mantener el código más limpio. Su única
+ * responsabilidad es tomar un objeto `Address` y llamar a las funciones del ViewModel
+ * para actualizar los campos de texto correspondientes.
+ */
 private fun updateAddressFields(viewModel: RegisterViewModel, address: Address) {
     viewModel.onStreetChange(address.thoroughfare ?: "")
     viewModel.onNumberChange(address.subThoroughfare ?: "")
@@ -178,4 +199,3 @@ private fun updateAddressFields(viewModel: RegisterViewModel, address: Address) 
     viewModel.onCityChange(address.subAdminArea ?: "")
     viewModel.onRegionChange(address.adminArea ?: "")
 }
-
