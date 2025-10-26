@@ -55,6 +55,7 @@ fun WelcomeScreen(navController: NavController) {
         // --- FIN OPCIONAL ---
 
 
+
         // Columna principal que organiza el contenido verticalmente.
         Column(
             modifier = Modifier

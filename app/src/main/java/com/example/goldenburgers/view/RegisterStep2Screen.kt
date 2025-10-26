@@ -178,3 +178,4 @@ private fun updateAddressFields(viewModel: RegisterViewModel, address: Address) 
     viewModel.onCityChange(address.subAdminArea ?: "")
     viewModel.onRegionChange(address.adminArea ?: "")
 }
+

@@ -1,5 +1,6 @@
 package com.example.goldenburgers.view
 
+
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -161,3 +162,4 @@ private fun createImageUri(context: Context): Uri {
     val imageFile = File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
 }
+

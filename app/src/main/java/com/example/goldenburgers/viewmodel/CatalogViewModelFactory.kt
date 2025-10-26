@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.goldenburgers.model.ProductRepository
 import com.example.goldenburgers.model.SessionManager
 
+
 /**
  * Factory para crear instancias de CatalogViewModel.
  * [ACTUALIZADO] Ahora también provee el SessionManager.

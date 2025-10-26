@@ -23,3 +23,4 @@ sealed class AppScreens(val route: String) {
     object CartScreen : AppScreens("cart_screen")
     object ProfileScreen : AppScreens("profile_screen")
 }
+

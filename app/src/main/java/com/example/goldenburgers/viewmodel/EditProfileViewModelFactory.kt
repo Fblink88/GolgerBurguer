@@ -21,3 +21,4 @@ class EditProfileViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class for EditProfileViewModelFactory")
     }
 }
+

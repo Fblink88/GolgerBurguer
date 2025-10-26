@@ -20,6 +20,7 @@ import com.example.goldenburgers.ui.theme.GolgerBurguerTheme
 import com.example.goldenburgers.viewmodel.CatalogViewModel
 import com.example.goldenburgers.viewmodel.CatalogViewModelFactory
 
+
 /**
  * La actividad principal y único punto de entrada de la aplicación.
  */

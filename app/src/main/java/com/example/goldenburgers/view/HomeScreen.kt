@@ -93,3 +93,5 @@ fun ProductCard(product: Producto, viewModel: CatalogViewModel) {
         }
     }
 }
+
+

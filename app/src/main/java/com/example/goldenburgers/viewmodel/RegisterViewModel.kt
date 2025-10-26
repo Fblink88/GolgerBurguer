@@ -116,3 +116,4 @@ class RegisterViewModel(private val repository: ProductRepository) : ViewModel()
                 state.region.isNotBlank()
     }
 }
+

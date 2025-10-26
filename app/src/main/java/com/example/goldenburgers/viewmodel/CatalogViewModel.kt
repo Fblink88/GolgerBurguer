@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
+
 /**
  * Data class para representar un item dentro del carrito de compras.
  */

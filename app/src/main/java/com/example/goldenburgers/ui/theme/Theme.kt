@@ -74,3 +74,4 @@ fun GolgerBurguerTheme(
         content = content
     )
 }
+

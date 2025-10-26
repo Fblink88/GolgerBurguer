@@ -76,3 +76,4 @@ class LoginViewModel(private val repository: ProductRepository) : ViewModel() {
                 state.emailError == null && state.passwordError == null
     }
 }
+
