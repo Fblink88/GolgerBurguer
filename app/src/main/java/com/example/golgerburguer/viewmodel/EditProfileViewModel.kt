@@ -45,7 +45,7 @@ class EditProfileViewModel(
     }
 
     /**
-     * [CORREGIDO] La actualización del estado ahora se hace en un solo paso para evitar que los datos se pierdan.
+     * La actualización del estado ahora se hace en un solo paso para evitar que los datos se pierdan.
      */
     private fun loadCurrentUser() {
         viewModelScope.launch {
