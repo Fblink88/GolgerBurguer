@@ -116,7 +116,8 @@ class RegisterViewModel(private val repository: ProductRepository) : ViewModel()
                         number = state.number,
                         city = state.city,
                         region = state.region,
-                        commune = state.commune
+                        commune = state.commune,
+                        profileImageUri = state.profileImageUri
                     )
                     repository.registerUser(newUser)
                     onSuccess() // Llama al callback de éxito

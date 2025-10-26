@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 /**
  * [ACTUALIZADO] Corregido el uso obsoleto de fallbackToDestructiveMigration.
  */
-@Database(entities = [Producto::class, User::class], version = 2, exportSchema = false)
+@Database(entities = [Producto::class, User::class], version = 3, exportSchema = false)
 abstract class GolgerBurguerDatabase : RoomDatabase() {
 
     abstract fun productDao(): ProductDao

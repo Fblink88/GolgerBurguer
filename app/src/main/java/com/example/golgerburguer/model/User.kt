@@ -28,5 +28,7 @@ data class User(
     val number: String,
     val city: String,
     val region: String,
-    val commune: String
+    val commune: String,
+    val profileImageUri: String? = null // <-- NUEVO
+
 )
