@@ -1,5 +1,12 @@
 package com.example.golgerburguer.view
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,29 +14,93 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.golgerburguer.navigation.AppScreens
 import com.example.golgerburguer.viewmodel.RegisterViewModel
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
- * [ACTUALIZADO] Añadido el campo de Región que faltaba.
+ * [ACTUALIZADO] Añadido el campo de Región que faltaba y la funcionalidad de autocompletado de dirección por GPS.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewModel) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
-    // La validación ahora incluye el campo de región.
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+                permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)) {
+
+                coroutineScope.launch {
+                    try {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+                            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                                .addOnSuccessListener { location ->
+                                    if (location != null) {
+                                        val geocoder = Geocoder(context, Locale.getDefault())
+
+                                        val updateVmWithAddress = { address: Address ->
+                                            viewModel.onStreetChange(address.thoroughfare ?: "")
+                                            viewModel.onNumberChange(address.subThoroughfare ?: "")
+                                            viewModel.onCommuneChange(address.locality ?: "")
+                                            viewModel.onCityChange(address.subAdminArea ?: "")
+                                            viewModel.onRegionChange(address.adminArea ?: "")
+                                        }
+
+                                        try {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                                geocoder.getFromLocation(
+                                                    location.latitude,
+                                                    location.longitude,
+                                                    1
+                                                ) { addresses ->
+                                                    addresses.firstOrNull()?.let(updateVmWithAddress)
+                                                }
+                                            } else {
+                                                @Suppress("DEPRECATION")
+                                                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                                                addresses?.firstOrNull()?.let(updateVmWithAddress)
+                                            }
+                                        } catch (e: Exception) {
+                                            // Geocoder exception
+                                        }
+                                    }
+                                }
+                        }
+                    } catch (e: SecurityException) {
+                        // Location permission exception
+                    }
+                }
+            } else {
+                // Permiso denegado.
+            }
+        }
+    )
+
     val isStep2Valid = uiState.fullName.isNotBlank() && uiState.phoneNumber.isNotBlank() &&
             uiState.street.isNotBlank() && uiState.number.isNotBlank() &&
             uiState.city.isNotBlank() && uiState.commune.isNotBlank() && uiState.region.isNotBlank() &&
@@ -53,7 +124,7 @@ fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewMod
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 32.dp)
-                    .verticalScroll(rememberScrollState()), // Permite hacer scroll
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 LinearProgressIndicator(progress = { 0.4f }, modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
@@ -63,7 +134,6 @@ fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewMod
                 Text("Necesitamos tus datos personales y de despacho.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(32.dp))
 
-                // --- Campos de Datos Personales ---
                 OutlinedTextField(value = uiState.fullName, onValueChange = { viewModel.onFullNameChange(it) }, label = { Text("Nombre Completo") }, isError = uiState.fullNameError != null, singleLine = true, modifier = Modifier.fillMaxWidth())
                 AnimatedVisibility(visible = uiState.fullNameError != null) {
                     Text(uiState.fullNameError ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp))
@@ -76,8 +146,17 @@ fun RegisterStep2Screen(navController: NavController, viewModel: RegisterViewMod
                 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
 
-                // --- Campos de Dirección ---
-                Text("Dirección de Despacho", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Permitir Ubicacion", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    IconButton(onClick = {
+                        locationPermissionLauncher.launch(arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        ))
+                    }) {
+                        Icon(Icons.Default.LocationOn, contentDescription = "Autocompletar Dirección")
+                    }
+                }
                 Spacer(Modifier.height(16.dp))
 
                 OutlinedTextField(value = uiState.street, onValueChange = { viewModel.onStreetChange(it) }, label = { Text("Calle") }, isError = uiState.streetError != null, singleLine = true, modifier = Modifier.fillMaxWidth())
