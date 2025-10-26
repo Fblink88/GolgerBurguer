@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.golgerburguer"
+    namespace = "com.example.goldenburgers"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.golgerburguer"
+        applicationId = "com.example.goldenburgers"
         minSdk = 33
         targetSdk = 36
         versionCode = 1
